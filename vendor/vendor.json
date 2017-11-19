@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "T1vAgV6ZikpXclSYb24tRbkjjiY=",
+			"path": "github.com/drone/drone-go/drone",
+			"revision": "d5a4e9da1d84a2e77f98ad2a3c50e1ebd7da5cb5",
+			"revisionTime": "2017-09-11T00:26:52Z"
+		},
+		{
+			"checksumSHA1": "0cdNscA7+z4+lKF5usZYz3it/04=",
+			"path": "github.com/joho/godotenv",
+			"revision": "0f92a24bb0cd655270e0a559fbda13f92629510b",
+			"revisionTime": "2017-11-02T02:11:18Z"
+		},
+		{
+			"checksumSHA1": "UE4lhbPYYWEhqHXQk24OA73m5+8=",
+			"path": "github.com/joho/godotenv/autoload",
+			"revision": "0f92a24bb0cd655270e0a559fbda13f92629510b",
+			"revisionTime": "2017-11-02T02:11:18Z"
+		},
+		{
+			"checksumSHA1": "vGOPD8NeHLU2LJPYP9MeXa7hF9s=",
+			"path": "github.com/rinetd/drone-rsync",
+			"revision": "f3d5a6671d62fa2f926127bdb24ac6e0213df537",
+			"revisionTime": "2016-02-26T08:51:29Z"
+		},
+		{
+			"checksumSHA1": "HcA22Mjc91J/JzDB2DIszW7BQRY=",
+			"path": "github.com/uber-go/zap",
+			"revision": "f85c78b1dd998214c5f2138155b320a4a43fbe36",
+			"revisionTime": "2017-10-30T23:38:06Z"
+		},
+		{
+			"checksumSHA1": "zRAcxJW8WNDMryOBS4VE03V6ivw=",
+			"path": "github.com/urfave/cli",
+			"revision": "7f4b273a05858e05b96b6adf0a7907b7b695c352",
+			"revisionTime": "2017-10-31T02:55:34Z"
+		}
+	],
+	"rootPath": "github.com/rinetd/drone-rsync"
+}
