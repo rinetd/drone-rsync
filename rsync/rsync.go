@@ -7,7 +7,6 @@ import (
 	"log"
 	"os/exec"
 	"path"
-	"strconv"
 	"sync"
 
 	"github.com/rinetd/drone-rsync/utils"
@@ -36,7 +35,7 @@ type (
 	// Config in Rsync
 	Config struct {
 		Hosts     []string
-		Port      int
+		Port      string
 		User      string
 		Key       string
 		Password  string
@@ -68,18 +67,10 @@ func (p *Plugin) Exec() error {
 	// 2.执行ssh
 
 	// write the rsa private key if provided
-	if err := utils.WriteKey(p.Config.Key); err != nil {
-		log.Panicln("write key error")
-		return err
-	}
+	utils.WriteKey(p.Config.Key)
 
 	if len(p.Config.Hosts) == 0 {
 		p.Config.Hosts = []string{"localhost", "127.0.0.1"}
-	}
-
-	// default values
-	if p.Config.Port == 0 {
-		p.Config.Port = 22
 	}
 
 	if len(p.Config.User) == 0 {
@@ -91,13 +82,16 @@ func (p *Plugin) Exec() error {
 	if len(p.Config.Target) == 0 {
 		p.Config.Target = "/tmp/drone/drone"
 	}
-
+	p.Config.Source = "/home/ubuntu/test/test/"
 	// p.Config.Sync = true
-	// p.Config.Hosts = []string{"d2", "d4"}
-	// p.Config.Port = 3009
-	// p.Config.User = "root"
-	// p.Config.Target = "/tmp/drone/drone"
-	// p.Config.Recursive = true
+	p.Config.Hosts = []string{"d2", "d4"}
+	p.Config.Port = "3009"
+	p.Config.User = "root"
+	p.Config.Target = "~/test/"
+	p.Config.Chmod = "0755"
+	p.Config.Chown = "33:33"
+	p.Config.Recursive = true
+	p.Config.Delete = true
 
 	// log.Println("[key:]", p.Config.Key)
 	log.Println("[Hosts:]", p.Config.Hosts)
@@ -183,10 +177,11 @@ func (p *Plugin) asyncRun() error {
 var Filename string = ".drone-script.sh"
 
 func (p *Plugin) genScript() error {
-	// if len(p.Config.Script) > 0 {
-	// 	log.Println(p.Config.Script)
+	if len(p.Config.Script) == 0 {
+		log.Println("p.Config.Script is Null")
+		return nil
 
-	// }
+	}
 
 	file := path.Join(p.Config.Source, Filename)
 	// log.Println("[sourcePath:]", file)
@@ -200,7 +195,7 @@ func (p *Plugin) genScript() error {
 	}
 
 	// buf.WriteString(utils.Replace(p.Config.Script, "\\", ",", "\\n"))
-	// buf.WriteString("rm -- \"$0\"")
+	buf.WriteString("rm -- \"$0\"")
 	ioutil.WriteFile(file, buf.Bytes(), 0755)
 
 	return nil
@@ -215,6 +210,7 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	}
 	args := []string{
 		"-az",
+		"-v",
 	}
 	// append recursive flag
 	if p.Config.Recursive {
@@ -224,16 +220,15 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 			args = append(args, "--del")
 		}
 	}
-	// append custom ssh parameters
-	args = append(args, "-e", fmt.Sprintf("ssh -p %d -o UserKnownHostsFile=/dev/null -o LogLevel=quiet -o StrictHostKeyChecking=no", p.Config.Port))
-	args = append(args, "--rsync-path", fmt.Sprintf("mkdir -p %s && rsync", p.Config.Target))
-
 	if len(p.Config.Chown) > 0 {
-		args = append(args, fmt.Sprintf("--owner --group --chown=%s", p.Config.Chown))
+		args = append(args, "--owner", "--group", "--chown", p.Config.Chown)
 	}
 	if len(p.Config.Chmod) > 0 {
-		args = append(args, fmt.Sprintf("--perms --chmod=%s", p.Config.Chmod))
+		args = append(args, "--perms", "--chmod", p.Config.Chmod)
 	}
+	// append custom ssh parameters
+	args = append(args, "-e", fmt.Sprintf("ssh -p %v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no", p.Config.Port))
+	args = append(args, "--rsync-path", fmt.Sprintf("mkdir -p %s && rsync", p.Config.Target))
 
 	// append filtering rules
 	for _, pattern := range p.Config.Include {
@@ -247,11 +242,6 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 
 	for _, pattern := range p.Config.Filter {
 		args = append(args, fmt.Sprintf("--filter=%s", pattern))
-	}
-	//
-	if len(p.Config.Script) > 0 {
-		log.Println(p.Config.Script)
-
 	}
 
 	// args = append(args, p.globSource(root)...)
@@ -276,11 +266,19 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	// fmt.Println("%v", cmd)
 	// return exec.Command("rsync", args...)
 	b, err := cmd.Output()
-	log.Println("[Rsync:]", string(b))
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("[Rsync:] output-> ", string(b))
 	return b, err
 }
 
 func (p *Plugin) commandSSH(host string) ([]byte, error) {
+	if len(p.Config.Script) == 0 {
+		log.Println("p.Config.Script is Null")
+		return nil, nil
+
+	}
 	log.Println("[SSH：] Runing")
 
 	args := []string{
@@ -289,18 +287,21 @@ func (p *Plugin) commandSSH(host string) ([]byte, error) {
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=quiet",
 	}
-	if p.Config.Port != 22 {
-		args = append(args, "-p", strconv.Itoa(p.Config.Port))
+	if p.Config.Port != "22" {
+		args = append(args, "-p", p.Config.Port)
 	}
 	if len(p.Config.User) != 0 {
 		args = append(args, "-l", string(p.Config.User))
 	}
 	args = append(args, host)
-	args = append(args, "bash -c", path.Join(p.Config.Target, Filename))
+	args = append(args, "bash", path.Join(p.Config.Target, Filename))
 	cmd := exec.Command("ssh", args...)
 	log.Println(args)
 	b, err := cmd.Output()
-	log.Println("[SSH:]", string(b))
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("[SSH:] output-> ", string(b))
 	return b, err
 }
 

@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -25,7 +26,7 @@ func homeDir() string {
 // chmod 400 ~/.ssh/authorized_keys
 func WriteKey(privateKey string) error {
 	if privateKey == "" {
-		// log.Println("private key is none")
+		log.Println("private key is none")
 		return nil
 	}
 

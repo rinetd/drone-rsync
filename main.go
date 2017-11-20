@@ -31,11 +31,11 @@ func main() {
 			Usage:  "connect to host",
 			EnvVar: "PLUGIN_HOSTS",
 		},
-		cli.IntFlag{
+		cli.StringFlag{
 			Name:   "port,p",
 			Usage:  "connect to port ",
 			EnvVar: "PLUGIN_PORT",
-			Value:  22,
+			Value:  "22",
 		},
 		cli.StringFlag{
 			Name:   "username,user,u",
@@ -57,6 +57,7 @@ func main() {
 			Name:   "source",
 			Usage:  "source",
 			EnvVar: "PLUGIN_SOURCE",
+			Value:  ".",
 		},
 		cli.StringFlag{
 			Name:   "target",
