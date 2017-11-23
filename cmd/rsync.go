@@ -15,6 +15,7 @@ func Run(c *cli.Context) error {
 			Password:  c.String("password"),
 			Source:    c.String("source"),
 			Target:    c.String("target"),
+			Verbose:   c.String("verbose"),
 			Recursive: c.Bool("recursive"),
 			Delete:    c.Bool("delete"),
 			Sync:      c.Bool("sync"),
@@ -23,6 +24,7 @@ func Run(c *cli.Context) error {
 			Include:   c.StringSlice("include"),
 			Exclude:   c.StringSlice("exclude"),
 			Filter:    c.StringSlice("filter"),
+			Export:    c.StringSlice("export"),
 			Script:    c.String("script"),
 		},
 	}

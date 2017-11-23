@@ -85,6 +85,11 @@ func main() {
 			EnvVar: "PLUGIN_CHMOD",
 		},
 		cli.StringFlag{
+			Name:   "verbose",
+			Usage:  "verbose -q -v -vv -vvv",
+			EnvVar: "PLUGIN_VERBOSE",
+		},
+		cli.StringFlag{
 			Name:   "chown",
 			Usage:  "chown commands",
 			EnvVar: "PLUGIN_CHOWN",
@@ -103,6 +108,11 @@ func main() {
 			Name:   "filter",
 			Usage:  "filter commands",
 			EnvVar: "PLUGIN_FILTER",
+		},
+		cli.StringSliceFlag{
+			Name:   "export",
+			Usage:  "export envirment to remote hosts",
+			EnvVar: "PLUGIN_EXPORT",
 		},
 		cli.StringFlag{
 			Name:   "scripts,script,s",

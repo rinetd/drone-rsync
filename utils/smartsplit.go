@@ -39,7 +39,7 @@ func Split(input, escape, delimiter string) []string {
 	return found
 }
 
-// Replace ("aa,bb", "\\", ",", "\\n")
+// Replace ("aa,bb", "\\", ",", "\n")
 func Replace(input, escape, delimiter, new string) string {
 	parsed := ""
 	state := stateParsing
