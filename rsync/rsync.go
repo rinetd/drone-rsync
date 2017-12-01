@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"sync"
 
@@ -93,7 +94,7 @@ func (p *Plugin) Exec() error {
 func (p *Plugin) Run() error {
 	if p.Config.Sync {
 		for i, host := range p.Config.Hosts {
-			log.Println("===Sync host [", i, host, "]Runing===\n")
+			log.Println("===Sync host [", i, host, "]Runing===")
 			p.commandRsync(host)
 			p.commandSSH(host)
 		}
@@ -110,7 +111,7 @@ func (p *Plugin) Run() error {
 		}()
 		for i, host := range p.Config.Hosts {
 
-			log.Println("===Async host [", i, host, "] Runing===\n")
+			log.Println("===Async host [", i, host, "] Runing===")
 			go func(host string, wg *sync.WaitGroup, errChannel chan error) {
 				p.commandRsync(host)
 				p.commandSSH(host)
@@ -143,7 +144,21 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 		return nil, nil
 	}
 	args := []string{
-		"-az",
+		// "-r", //--recursive             recurse into directories
+		"-l", //--links 				copy symlinks as symlinks
+		"-t", //--times                 preserve modification times
+		// "-p", //--perms 				preserve permissions
+		// "-g", //--group              preserve group
+		// "-o", //--owner              preserve owner (super-user only)
+		"-D", // same as --devices --specials
+		"-P", // same as --partial --progress
+		"-z", //--compress              compress file data during the transfer
+		"-h", //--human-readable        output numbers in a human-readable format
+
+		// "-H", //--hard-links			preserve hard links
+		// "-A", //--acls                  preserve ACLs (implies --perms)
+		// "-X", //--xattrs                preserve extended attributes
+
 	}
 	switch p.Config.Verbose {
 	case "v", "-v":
@@ -171,7 +186,7 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	}
 	// append custom ssh parameters
 	args = append(args, "-e", fmt.Sprintf("ssh -p %v -o ControlPersist=5m -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no", p.Config.Port))
-	args = append(args, "--rsync-path", fmt.Sprintf("mkdir -p %s && rsync", p.Config.Target))
+	args = append(args, "--rsync-path", fmt.Sprintf("mkdir -p %s && rsync", path.Dir(p.Config.Target)))
 
 	// append filtering rules
 	for _, pattern := range p.Config.Include {
@@ -256,18 +271,39 @@ func (p *Plugin) commandSSH(host string) ([]byte, error) {
 	return b, err
 }
 
-var envdef = []string{"DRONE_COMMIT_MESSAGE"}
+var envdef = []string{"MYSQL_ROOT_PASSWORD"}
+var cuser = "GRANT "
 
 func (p *Plugin) genExport() (ex string) {
 
-	for _, v := range envdef {
-		ek := strings.ToUpper(v)
-		if ev := os.Getenv(ek); ev != "" {
-			er := strings.Replace(ev, "\n", " ", -1)
-			ex += "export " + ek + "='" + er + "';"
-			log.Println(ek, er)
+	if ev := os.Getenv("DRONE_COMMIT_MESSAGE"); ev != "" {
+		ex += "export DRONE_COMMIT_MESSAGE='" + strings.Replace(ev, "\n", " ", -1) + "';"
+		st := strings.ToLower(ev)
+		if strings.Contains(st, "[init sql]") {
+			ex += "export DB_INIT=true;"
+			// 导出MYSQL
+			if ev := os.Getenv("MYSQL_ROOT_PASSWORD"); ev != "" {
+				ex += "export MYSQL_ROOT_PASSWORD='" + ev + "';"
+			}
+		}
+		if strings.Contains(st, "[update sql]") {
+			ex += "export DB_UPDATE=true;"
+		}
+		if strings.Contains(st, "[delete sql]") {
+			ex += "export DB_DELETE=true;"
+		}
+		if strings.Contains(st, "[backup sql]") {
+			ex += "export DB_BACKUP=true;"
 		}
 	}
+	// for _, v := range envdef {
+	// 	ek := strings.ToUpper(v)
+	// 	if ev := os.Getenv(ek); ev != "" {
+	// 		er := strings.Replace(ev, "\n", " ", -1)
+	// 		ex += "export " + ek + "='" + er + "';"
+	// 		log.Println(ek, er)
+	// 	}
+	// }
 
 	for _, v := range p.Config.Export {
 		// log.Println(i, v)

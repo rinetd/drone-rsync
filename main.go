@@ -3,15 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/rinetd/drone-rsync/cmd"
 	"github.com/urfave/cli"
 )
 
-var Version string = fmt.Sprintf("1.0.1")
+var Version string = fmt.Sprintf("1.0.2")
 
 func main() {
-
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	app := cli.NewApp()
 	app.Name = "Drone-rsync"
 	app.Usage = "Rsync to Remote Hosts"
@@ -121,7 +122,7 @@ func main() {
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		fmt.Println("drone-ssh error: ", err)
+		fmt.Println("drone-rsync error: ", err)
 		os.Exit(1)
 	}
 }

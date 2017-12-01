@@ -119,3 +119,10 @@ type CustomError struct {
 func (e *CustomError) Error() string {
 	return e.msg
 }
+
+func GetDirName(uri string) string {
+
+	es := strings.Split(uri, "/")
+	path := es[:len(es)-1]
+	return strings.Join(path, "/")
+}

@@ -1,13 +1,13 @@
 .PHONY: all clean deps fmt vet test docker
 
 EXECUTABLE ?= drone-rsync
-IMAGE ?= plugins/$(EXECUTABLE)
+IMAGE ?= rinetd/$(EXECUTABLE)
 COMMIT ?= $(shell git rev-parse --short HEAD)
 
 LDFLAGS = -X "main.buildCommit=$(COMMIT)"
 PACKAGES = $(shell go list ./... | grep -v /vendor/)
 
-all: deps build test
+all: deps build docker
 
 clean:
 	go clean -i ./...
@@ -26,8 +26,9 @@ test:
 
 docker:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-s -w $(LDFLAGS)'
+	upx $(EXECUTABLE)
 	docker build --rm -t $(IMAGE) .
-
+	docker push $(IMAGE)
 $(EXECUTABLE): $(wildcard *.go)
 	go build -ldflags '-s -w $(LDFLAGS)'
 
