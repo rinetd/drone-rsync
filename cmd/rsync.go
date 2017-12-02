@@ -15,6 +15,7 @@ func Run(c *cli.Context) error {
 			Password:  c.String("password"),
 			Source:    c.String("source"),
 			Target:    c.String("target"),
+			Args:      c.StringSlice("args"),
 			Verbose:   c.String("verbose"),
 			Recursive: c.Bool("recursive"),
 			Delete:    c.Bool("delete"),

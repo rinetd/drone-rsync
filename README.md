@@ -12,7 +12,7 @@ Use the rsync plugin to deploy files to a server using rsync over ssh. The follo
 * `user` - connects as this user
 * `port` - connects to this host port
 * `key` - SSH RSA privete key for remote host 
-* `source` - source path from which files are copied , when you want skip rsync ,set source null or commit it `source: `
+* `source` - source path from which files are copied , if you want skip rsync ,set source null or comment it `source: `
 * `target` - target path to which files are copied `target: /docker/proj/`
 * `chmod` - chmod remote target after finish rsync `chmod: 0644`
 * `chown` - chown remote target after finish rsync `chown: "33:33"`

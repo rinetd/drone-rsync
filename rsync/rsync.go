@@ -25,6 +25,7 @@ type (
 		Password  string
 		Source    string
 		Target    string
+		Args      []string
 		Chmod     string
 		Chown     string
 		Verbose   string
@@ -173,14 +174,19 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	default:
 	}
 
-	// // append recursive flag
-	// if p.Config.Recursive {
+	// append args rules
+	for _, arg := range p.Config.Args {
+		args = append(args, arg)
+	}
 
-	// 	// append delete flag
+	// append recursive flag
+	// if p.Config.Recursive {
+	// 	args = append(args, "-r")
 	// }
+	// append delete flag
 	if p.Config.Delete {
 		args = append(args, "--del")
-		// args = append(args, "-r")
+		args = append(args, "-r")
 	}
 	if len(p.Config.Chown) > 0 {
 		args = append(args, "--owner", "--group", "--chown", p.Config.Chown)

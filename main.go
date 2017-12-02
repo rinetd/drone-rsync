@@ -65,6 +65,11 @@ func main() {
 			Usage:  "target",
 			EnvVar: "PLUGIN_TARGET",
 		},
+		cli.StringSliceFlag{
+			Name:   "args",
+			Usage:  "args commands",
+			EnvVar: "PLUGIN_ARGS",
+		},
 		cli.BoolFlag{
 			Name:   "recursive",
 			Usage:  "recursive mode",
