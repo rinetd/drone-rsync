@@ -1,11 +1,13 @@
 package rsync
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -47,19 +49,19 @@ func (p *Plugin) Exec() error {
 	// write the rsa private key if provided
 	utils.WriteKey(p.Config.Key)
 
-	if len(p.Config.Hosts) == 0 {
-		p.Config.Hosts = []string{"d2", "d4"}
-	}
-
 	if len(p.Config.User) == 0 {
 		p.Config.User = "root"
 	}
-	if len(p.Config.Source) == 0 {
-		p.Config.Source = "./"
-	}
-	if len(p.Config.Target) == 0 {
-		p.Config.Target = "/tmp/drone/drone"
-	}
+	// if len(p.Config.Hosts) == 0 {
+	// 	p.Config.Hosts = []string{"d2", "d4"}
+	// }
+
+	// if len(p.Config.Source) == 0 {
+	// 	p.Config.Source = "./"
+	// }
+	// if len(p.Config.Target) == 0 {
+	// 	p.Config.Target = "/tmp/drone/drone"
+	// }
 	// p.Config.Source = "/home/ubuntu/test/test/"
 	// p.Config.Sync = true
 	// p.Config.Hosts = []string{"d2", "d4"}
@@ -87,8 +89,8 @@ func (p *Plugin) Exec() error {
 	// log.Println("[Filter:]", p.Config.Filter)
 	// log.Println("[Script:]", p.Config.Script)
 	// p.genScript()
-	p.Run()
-	return nil
+
+	return p.Run()
 }
 
 func (p *Plugin) Run() error {
@@ -115,13 +117,13 @@ func (p *Plugin) Run() error {
 			go func(host string, wg *sync.WaitGroup, errChannel chan error) {
 				p.commandRsync(host)
 				p.commandSSH(host)
-
 				wg.Done()
 			}(host, &wg, errChannel)
 		}
 
 		select {
 		case <-finished:
+			return nil
 		case err := <-errChannel:
 			if err != nil {
 				log.Println(err)
@@ -141,24 +143,25 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	log.SetPrefix("[rsync]: ")
 
 	if len(p.Config.Target) == 0 {
+		log.Println("---Target is null , Skip Rsync---")
 		return nil, nil
 	}
 	args := []string{
-		// "-r", //--recursive             recurse into directories
-		"-l", //--links 				copy symlinks as symlinks
-		"-t", //--times                 preserve modification times
+		"-az",
+		// "-r", //--recursive          recurse into directories
+		// "-l", //--links 				copy symlinks as symlinks
+		// "-t", //--times              preserve modification times
 		// "-p", //--perms 				preserve permissions
 		// "-g", //--group              preserve group
 		// "-o", //--owner              preserve owner (super-user only)
-		"-D", // same as --devices --specials
-		"-P", // same as --partial --progress
-		"-z", //--compress              compress file data during the transfer
-		"-h", //--human-readable        output numbers in a human-readable format
-
+		// "-D", // same as --devices --specials
+		// "-P", // same as --partial --progress
+		"--partial", //                 keep partially transferred files
+		// "-z", //--compress           compress file data during the transfer
+		// "-h", //--human-readable     output numbers in a human-readable format
 		// "-H", //--hard-links			preserve hard links
-		// "-A", //--acls                  preserve ACLs (implies --perms)
-		// "-X", //--xattrs                preserve extended attributes
-
+		// "-A", //--acls               preserve ACLs (implies --perms)
+		// "-X", //--xattrs             preserve extended attributes
 	}
 	switch p.Config.Verbose {
 	case "v", "-v":
@@ -170,13 +173,14 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	default:
 	}
 
-	// append recursive flag
-	if p.Config.Recursive {
-		args = append(args, "-r")
-		// append delete flag
-	}
+	// // append recursive flag
+	// if p.Config.Recursive {
+
+	// 	// append delete flag
+	// }
 	if p.Config.Delete {
 		args = append(args, "--del")
+		// args = append(args, "-r")
 	}
 	if len(p.Config.Chown) > 0 {
 		args = append(args, "--owner", "--group", "--chown", p.Config.Chown)
@@ -235,7 +239,7 @@ func (p *Plugin) commandSSH(host string) ([]byte, error) {
 	log.SetPrefix("[SSH]: ")
 
 	if len(p.Config.Script) == 0 {
-		log.Println("SSH Host:", host, "No Script to Excute!")
+		log.Println("SSH Host:", host, "Skip Excute on SSH Remote with NULL Script !")
 		return nil, nil
 
 	}
@@ -267,33 +271,45 @@ func (p *Plugin) commandSSH(host string) ([]byte, error) {
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println("[SSH:", host, " output]\n ", string(b))
+	log.Println("[SSH:", host, " output]\n", string(b))
 	return b, err
 }
 
-var envdef = []string{"MYSQL_ROOT_PASSWORD"}
-var cuser = "GRANT "
+// var envdef = []string{"MYSQL_ROOT_PASSWORD"}
+
+// var re_init = regexp.MustCompile(`[db_init (.*)]`)
+var re_update = regexp.MustCompile(`\[db_update (.*?)\]`)
+var re_delete = regexp.MustCompile(`\[db_delete (.*?)\]`)
+var re_drop = regexp.MustCompile(`\[db_drop (.*?)\]`)
+var re_backup = regexp.MustCompile(`\[db_backup (.*?)\]`)
 
 func (p *Plugin) genExport() (ex string) {
 
 	if ev := os.Getenv("DRONE_COMMIT_MESSAGE"); ev != "" {
 		ex += "export DRONE_COMMIT_MESSAGE='" + strings.Replace(ev, "\n", " ", -1) + "';"
 		st := strings.ToLower(ev)
-		if strings.Contains(st, "[init sql]") {
+		if strings.Contains(st, "[db_init") {
 			ex += "export DB_INIT=true;"
 			// 导出MYSQL
 			if ev := os.Getenv("MYSQL_ROOT_PASSWORD"); ev != "" {
-				ex += "export MYSQL_ROOT_PASSWORD='" + ev + "';"
+				ex += "export MYSQL_ROOT_PASSWORD='" + base64.StdEncoding.EncodeToString([]byte(ev)) + "';"
 			}
 		}
-		if strings.Contains(st, "[update sql]") {
-			ex += "export DB_UPDATE=true;"
+		if strings.Contains(st, "[db_update") {
+			sql := re_update.FindStringSubmatch(st)[1]
+			ex += "export DB_UPDATE=(" + sql + ");"
 		}
-		if strings.Contains(st, "[delete sql]") {
-			ex += "export DB_DELETE=true;"
+		if strings.Contains(st, "[db_drop") {
+			sql := re_drop.FindStringSubmatch(st)[1]
+			ex += "export DB_DROP=(" + sql + ");"
 		}
-		if strings.Contains(st, "[backup sql]") {
-			ex += "export DB_BACKUP=true;"
+		if strings.Contains(st, "[db_delete") {
+			sql := re_delete.FindStringSubmatch(st)[1]
+			ex += "export DB_DELETE=(" + sql + ");"
+		}
+		if strings.Contains(st, "[db_backup") {
+			sql := re_backup.FindStringSubmatch(st)[1]
+			ex += "export DB_BACKUP=(" + sql + ");"
 		}
 	}
 	// for _, v := range envdef {
@@ -312,7 +328,7 @@ func (p *Plugin) genExport() (ex string) {
 			ex += "export " + ek + "=" + ev + ";"
 		}
 	}
-	log.Println("export：", ex)
+	// log.Println("export：", ex)
 	return
 }
 
