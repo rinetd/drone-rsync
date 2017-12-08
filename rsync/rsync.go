@@ -1,6 +1,7 @@
 package rsync
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -233,6 +234,7 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 
 	// fmt.Println("%v", cmd)
 	// return exec.Command("rsync", args...)
+	cmd.Stderr = os.Stderr
 	b, err := cmd.Output()
 	if err != nil {
 		log.Println(err)
@@ -272,14 +274,30 @@ func (p *Plugin) commandSSH(host string) ([]byte, error) {
 	cmd := exec.Command("ssh", args...)
 
 	log.Println("[SSH]", host, args)
-
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	b, err := cmd.Output()
 	if err != nil {
+		log.Println("[SSH:", host, " ERROR output]\n", stderr.String())
 		log.Println(err)
+		return stderr.Bytes(), err
 	}
 	log.Println("[SSH:", host, " output]\n", string(b))
-	return b, err
+	return b, nil
 }
+
+// func (c *Cmd) Output() ([]byte, error) {
+
+// 	var out bytes.Buffer
+
+// 	cmd.Stdout = &out
+// 	cmd.Stderr = &out
+// 	err := cmd.Run()
+// 	if err != nil {
+// 		return out.Bytes(), err
+// 	}
+// 	return out.Bytes(), nil
+// }
 
 // var envdef = []string{"MYSQL_ROOT_PASSWORD"}
 
