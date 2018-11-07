@@ -41,7 +41,7 @@ func Split(input, escape, delimiter string) []string {
 
 // Replace ("aa,bb", "\\", ",", "\n")
 func Replace(input, escape, delimiter, new string) string {
-	parsed := ""
+	out := ""
 	state := stateParsing
 
 	for _, c := range input {
@@ -49,23 +49,23 @@ func Replace(input, escape, delimiter, new string) string {
 		// 1. 默认
 		if state == stateParsing {
 			if c == delimiter { // "," 替换
-				parsed += new
-			} else if c == escape { //转译
+				out += new
+			} else if c == escape { //转义
 				state = stateEscaped
 			} else {
-				parsed += c
+				out += c
 			}
 		} else {
-			//启动转译
+			//启动转义
 			if c == delimiter {
-				parsed += c
+				out += c
 			} else {
-				parsed += escape
-				parsed += c
+				out += escape
+				out += c
 			}
 			state = stateParsing
 		}
 	}
 
-	return parsed
+	return out
 }

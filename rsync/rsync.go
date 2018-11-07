@@ -51,7 +51,7 @@ func (p *Plugin) Exec() error {
 	// write the rsa private key if provided
 	utils.WriteKey(p.Config.Key)
 
-	if len(p.Config.User) == 0 {
+	if len(p.User) == 0 {
 		p.Config.User = "root"
 	}
 	// if len(p.Config.Hosts) == 0 {
@@ -109,10 +109,7 @@ func (p *Plugin) Run() error {
 		errChannel := make(chan error, 2)
 
 		finished := make(chan bool, 1)
-		go func() {
-			wg.Wait()
-			close(finished)
-		}()
+
 		for i, host := range p.Config.Hosts {
 
 			log.Println("===Async host [", i, host, "] Runing===")
@@ -122,6 +119,11 @@ func (p *Plugin) Run() error {
 				wg.Done()
 			}(host, &wg, errChannel)
 		}
+
+		go func() {
+			wg.Wait()
+			close(finished)
+		}()
 
 		select {
 		case <-finished:
@@ -186,8 +188,8 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 	// }
 	// append delete flag
 	if p.Config.Delete {
-		args = append(args, "--del")
 		args = append(args, "-r")
+		args = append(args, "--del")
 	}
 	if len(p.Config.Chown) > 0 {
 		args = append(args, "--owner", "--group", "--chown", p.Config.Chown)
@@ -204,7 +206,7 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 		args = append(args, fmt.Sprintf("--include=%s", pattern))
 	}
 
-	args = append(args, "--exclude", ".git")
+	// args = append(args, "--exclude", ".git")
 	for _, pattern := range p.Config.Exclude {
 		args = append(args, fmt.Sprintf("--exclude=%s", pattern))
 	}
