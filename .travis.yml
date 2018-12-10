@@ -1,8 +1,6 @@
 language: go
-
 go:
   - '1.9'
-
 sudo: required
 services: docker
 
@@ -17,10 +15,12 @@ services: docker
 #   - pip install -r requirements.txt
 
 script:
-  - GOARCH=amd64 GOOS=linux go build -o bin/pipeline-blog-linux-amd64 main.go
-  - docker build -t $TRAVIS_REPO_SLUG .
-
+  - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-s -w'
+  
 after_success:
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+  - docker build -t $TRAVIS_REPO_SLUG .;
+  - docker push $TRAVIS_REPO_SLUG:latest;
   - if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     docker tag $TRAVIS_REPO_SLUG $TRAVIS_REPO_SLUG:dev;
@@ -28,7 +28,6 @@ after_success:
     fi
   - if [ $TRAVIS_TAG ]; then
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push $TRAVIS_REPO_SLUG;
     docker tag $TRAVIS_REPO_SLUG $TRAVIS_REPO_SLUG:$TRAVIS_TAG;
     docker push $TRAVIS_REPO_SLUG:$TRAVIS_TAG;
-fi
+    fi
