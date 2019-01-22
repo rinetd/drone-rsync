@@ -198,7 +198,7 @@ func (p *Plugin) commandRsync(host string) ([]byte, error) {
 		args = append(args, "--perms", "--chmod", p.Config.Chmod)
 	}
 	// append custom ssh parameters
-	args = append(args, "-e", fmt.Sprintf("ssh -p %v -o ControlPersist=5m -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no", p.Config.Port))
+	args = append(args, "-e", fmt.Sprintf("ssh -v -p %v -o ControlPersist=5m -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no", p.Config.Port))
 	args = append(args, "--rsync-path", fmt.Sprintf("mkdir -p %s && rsync", path.Dir(p.Config.Target)))
 
 	// append filtering rules
