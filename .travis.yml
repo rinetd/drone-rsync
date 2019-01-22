@@ -19,7 +19,7 @@ script:
   
 after_success:
   #- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"; depresed
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
   - docker build -t $TRAVIS_REPO_SLUG .;
   - docker push $TRAVIS_REPO_SLUG:latest;
   - if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
